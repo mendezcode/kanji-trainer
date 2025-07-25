@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kanji Trainer</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Your Kanji Database -->
+    <script src="database.js"></script>
+    <style>
+        /* Define custom colors and styles */
+        body {
+            background-color: #292b2a;
+            color: #BFBFBF;
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased; /* Added for smoother fonts */
+        }
+        .accent-color {
+            color: hsl(90.34deg 31% 60%);
+        }
+        .border-color {
+            border-color: #3e61c6;
+        }
+        .kanji-display {
+            font-size: 12em; /* Increased font size */
+            line-height: 1.2;
+        }
+        /* Custom styles for form elements */
+        input[type="number"], input[type="text"] {
+            background-color: #3a3d3c;
+            border: 2px solid #555;
+            color: #BFBFBF;
+            border-radius: 0.5rem;
+            padding: 0.5rem 0.75rem;
+            transition: border-color 0.2s;
+        }
+        input[type="number"]:focus, input[type="text"]:focus {
+            outline: none;
+            border-color: #3e61c6;
+        }
+        input[type="checkbox"] {
+            width: 1.25rem;
+            height: 1.25rem;
+            accent-color: hsl(90.34deg 31% 60%);
+        }
+        .btn {
+            background-color: hsl(90.34deg 31% 60%);
+            color: #292b2a;
+            font-weight: bold;
+            padding: 0.75rem 2rem;
+            border-radius: 0.5rem;
+            transition: background-color 0.2s;
+        }
+        .btn:hover {
+            background-color: hsl(90.34deg 31% 70%);
+        }
+        .no-underline {
+            text-decoration: none;
+            color: inherit;
+        }
+        .no-underline:hover {
+            text-decoration: none;
+            color: inherit;
+        }
+    </style>
+     <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Roboto+Mono&display=swap" rel="stylesheet">
+</head>
+<body class="h-screen w-screen flex items-center justify-center">
+
+    <!-- Settings View -->
+    <div id="settings-view" class="w-full max-w-md p-8 space-y-6">
+        <h1 class="text-3xl font-light text-center accent-color"><a href="index.html" class="no-underline">Kanji Trainer</a></h1>
+        <div>
+            <p class="w-full text-center text-sm text-gray-400 opacity-75">Trains Kanji recognition using the <a href="https://www.rightbraineducationlibrary.com/post/tachistoscope-principle" target="_blank" class="underline hover:text-gray-300">Tachistoscope Method</a> using kanji from the <a href="https://kodansha.us/product/the-kodansha-kanji-learners-course/" target="_blank" class="underline hover:text-gray-300">Kodansha Kanji Learner's course</a>.</p>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label for="start-id" class="block mb-1 text-sm">Start ID</label>
+                <input type="number" id="start-id" value="1" min="1" max="2300" class="w-full">
+            </div>
+            <div>
+                <label for="end-id" class="block mb-1 text-sm">End ID</label>
+                <input type="number" id="end-id" value="100" min="1" max="2300" class="w-full">
+            </div>
+        </div>
+        <div>
+            <label for="interval" class="block mb-1 text-sm">Interval (ms)</label>
+            <input type="number" id="interval" value="1000" step="100" class="w-full">
+        </div>
+        <div>
+            <label for="step" class="block mb-1 text-sm">Step (ms)</label>
+            <input type="number" id="step" value="100" step="50" class="w-full">
+        </div>
+        <div>
+            <label for="size" class="block mb-1 text-sm">Size (em)</label>
+            <input type="number" id="size" value="12" step="0.5" min="1" max="30" class="w-full">
+        </div>
+        <div>
+            <label for="duration" class="block mb-1 text-sm">Duration (min)</label>
+            <input type="number" id="duration" value="5" step="1" min="1" max="60" class="w-full">
+        </div>
+        <div class="flex items-center justify-between pt-2">
+            <div class="flex items-center gap-3">
+                <input type="checkbox" id="random" checked>
+                <label for="random">Random</label>
+            </div>
+            <div class="flex items-center gap-3">
+                <input type="checkbox" id="show-meaning">
+                <label for="show-meaning">Meaning</label>
+            </div>
+            <div class="flex items-center gap-3">
+                <input type="checkbox" id="serif">
+                <label for="serif">Serif</label>
+            </div>
+        </div>
+        <div class="pt-4">
+            <button id="start-btn" class="w-full btn">Start</button>
+        </div>
+        <div class="pt-2">
+            <p class="w-full text-center text-sm text-gray-400 opacity-50">Press the [spacebar] key to pause the session and visualize keyboard shortcuts.</p>
+        </div>
+    </div>
+
+    <!-- Training View -->
+    <div id="training-view" class="hidden w-full h-full flex flex-col items-center justify-center relative">
+        <!-- Progress Bar -->
+        <div id="progress-bar-container" class="absolute top-0 left-0 w-full h-2.5" style="background-color: hsl(150 2% 18% / 1);">
+            <div id="progress-bar" class="h-full" style="width: 0%; background-color: hsl(90.34deg 31% 60%);"></div>
+        </div>
+        <div id="pause-indicator" class="hidden absolute top-4 right-4 font-mono text-gray-400 opacity-50 text-right whitespace-nowrap">
+            <div>[ Paused ]</div>
+            <div class="mt-4 text-sm leading-relaxed">
+                <div><span class="opacity-75">Adjust font size:</span> up/down</div>
+                <div> <span class="opacity-75">Adjust interval:</span> left/right</div>
+                <div>  <span class="opacity-75">Toggle meaning:</span> m</div>
+                <div>    <span class="opacity-75">Toggle serif:</span> s</div>
+                <div>          <span class="opacity-75">Resume:</span> spacebar</div>
+                <div>            <span class="opacity-75">Exit:</span> esc</div>
+            </div>
+        </div>
+        <div id="kanji-container" class="text-center">
+            <div id="kanji-char" class="kanji-display font-bold"></div>
+            <div id="kanji-meaning" class="text-3xl accent-color mt-4"></div>
+        </div>
+        <!-- Removed opacity-50 from the container, will be applied to pipes via JS -->
+        <div id="footer-diagnostics" class="absolute bottom-4 text-center font-mono text-gray-400 opacity-50"></div>
+    </div>
+
+    <script>
+        // --- DOM Elements ---
+        const settingsView = document.getElementById('settings-view');
+        const trainingView = document.getElementById('training-view');
+        const startBtn = document.getElementById('start-btn');
+        const kanjiChar = document.getElementById('kanji-char');
+        const kanjiMeaning = document.getElementById('kanji-meaning');
+        const footerDiagnostics = document.getElementById('footer-diagnostics');
+        const pauseIndicator = document.getElementById('pause-indicator');
+        const progressBar = document.getElementById('progress-bar');
+
+        // --- Form Inputs ---
+        const startIdInput = document.getElementById('start-id');
+        const endIdInput = document.getElementById('end-id');
+        const intervalInput = document.getElementById('interval');
+        const stepInput = document.getElementById('step');
+        const sizeInput = document.getElementById('size');
+        const durationInput = document.getElementById('duration');
+        const randomInput = document.getElementById('random');
+        const showMeaningInput = document.getElementById('show-meaning');
+        const serifInput = document.getElementById('serif');
+
+        // --- State Variables ---
+        let kanjiList = [];
+        let sessionKanji = [];
+        let currentIndex = 0;
+        let currentInterval = 1000;
+        let step = 100;
+        let currentSize = 12;
+        let sessionDuration = 5; // in minutes
+        let useSerif = false;
+        let timerId = null;
+        let progressTimerId = null;
+        let startTime = null;
+        let elapsedTime = 0; // in milliseconds
+        let isPaused = false;
+        let isFinished = false;
+        let showMeaning = false;
+        let range = { start: 1, end: 100 };
+
+        /**
+         * Formats time in mm:ss format.
+         * @param {number} milliseconds Time in milliseconds
+         * @returns {string} Formatted time string
+         */
+        function formatTime(milliseconds) {
+            const totalSeconds = Math.floor(milliseconds / 1000);
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = totalSeconds % 60;
+            return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        /**
+         * Updates the progress bar and timer display.
+         */
+        function updateProgress() {
+            if (isFinished || isPaused) return; // Don't update progress bar when paused
+            
+            const currentTime = Date.now();
+            const sessionElapsed = currentTime - startTime;
+            const totalElapsed = elapsedTime + sessionElapsed;
+            const sessionDurationMs = sessionDuration * 60 * 1000;
+            
+            if (totalElapsed >= sessionDurationMs) {
+                // Session finished
+                isFinished = true;
+                clearInterval(timerId);
+                clearInterval(progressTimerId);
+                progressBar.style.width = '100%';
+                
+                const totalTimeStr = formatTime(sessionDurationMs);
+                pauseIndicator.innerHTML = `
+                    <div><span class="opacity-75">${totalTimeStr} / ${totalTimeStr}</span> [ Finished ]</div>
+                `;
+                pauseIndicator.classList.remove('hidden');
+                return;
+            }
+            
+            // Update progress bar only when not paused
+            const progressPercent = (totalElapsed / sessionDurationMs) * 100;
+            progressBar.style.width = progressPercent + '%';
+        }
+
+        /**
+         * Starts the progress timer.
+         */
+        function startProgressTimer() {
+            if (progressTimerId) clearInterval(progressTimerId);
+            progressTimerId = setInterval(updateProgress, 100); // Update every 100ms for smooth progress
+        }
+
+        /**
+         * Parses URL hash parameters and returns settings object.
+         * @returns {Object} Settings object with parsed values
+         */
+        function parseHashParams() {
+            const hash = window.location.hash.substring(1); // Remove #
+            if (!hash) return null;
+            
+            const params = {};
+            const pairs = hash.split(',');
+            
+            pairs.forEach(pair => {
+                const [key, value] = pair.split('=');
+                if (key && value !== undefined) {
+                    // Convert values to appropriate types
+                    if (value === 'true') params[key] = true;
+                    else if (value === 'false') params[key] = false;
+                    else if (!isNaN(value)) params[key] = parseFloat(value);
+                    else params[key] = value;
+                }
+            });
+            
+            return params;
+        }
+
+        /**
+         * Gets the default settings values.
+         * @returns {Object} Default settings object
+         */
+        function getDefaultSettings() {
+            return {
+                s: 1,
+                e: 100,
+                i: 1000,
+                st: 100,
+                sz: 12,
+                d: 5,
+                rand: true,
+                meaning: false,
+                serif: false
+            };
+        }
+
+        /**
+         * Checks if current settings match defaults.
+         * @returns {boolean} True if all settings match defaults
+         */
+        function areSettingsDefault() {
+            const defaults = getDefaultSettings();
+            return (
+                parseInt(startIdInput.value) === defaults.s &&
+                parseInt(endIdInput.value) === defaults.e &&
+                parseInt(intervalInput.value) === defaults.i &&
+                parseInt(stepInput.value) === defaults.st &&
+                parseFloat(sizeInput.value) === defaults.sz &&
+                parseInt(durationInput.value) === defaults.d &&
+                randomInput.checked === defaults.rand &&
+                showMeaningInput.checked === defaults.meaning &&
+                serifInput.checked === defaults.serif
+            );
+        }
+
+        /**
+         * Updates URL hash with current settings.
+         */
+        function updateUrlHash() {
+            const defaults = getDefaultSettings();
+            const params = [];
+            
+            // Only add parameters that differ from defaults
+            if (parseInt(startIdInput.value) !== defaults.s) params.push(`s=${startIdInput.value}`);
+            if (parseInt(endIdInput.value) !== defaults.e) params.push(`e=${endIdInput.value}`);
+            if (parseInt(intervalInput.value) !== defaults.i) params.push(`i=${intervalInput.value}`);
+            if (parseInt(stepInput.value) !== defaults.st) params.push(`st=${stepInput.value}`);
+            if (parseFloat(sizeInput.value) !== defaults.sz) params.push(`sz=${sizeInput.value}`);
+            if (parseInt(durationInput.value) !== defaults.d) params.push(`d=${durationInput.value}`);
+            if (randomInput.checked !== defaults.rand) params.push(`rand=${randomInput.checked}`);
+            if (showMeaningInput.checked !== defaults.meaning) params.push(`meaning=${showMeaningInput.checked}`);
+            if (serifInput.checked !== defaults.serif) params.push(`serif=${serifInput.checked}`);
+            
+            if (params.length === 0) {
+                // Remove hash if no non-default settings
+                if (window.location.hash) {
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                }
+            } else {
+                window.location.hash = params.join(',');
+            }
+        }
+
+        /**
+         * Applies hash parameters to form inputs.
+         * @param {Object} params Parsed hash parameters
+         */
+        function applyHashParams(params) {
+            if (params.s !== undefined) startIdInput.value = params.s;
+            if (params.e !== undefined) endIdInput.value = params.e;
+            if (params.i !== undefined) intervalInput.value = params.i;
+            if (params.st !== undefined) stepInput.value = params.st;
+            if (params.sz !== undefined) sizeInput.value = params.sz;
+            if (params.d !== undefined) durationInput.value = params.d;
+            if (params.rand !== undefined) randomInput.checked = params.rand;
+            if (params.meaning !== undefined) showMeaningInput.checked = params.meaning;
+            if (params.serif !== undefined) serifInput.checked = params.serif;
+        }
+
+        /**
+         * Initializes settings from URL hash or sets defaults.
+         */
+        function initializeSettings() {
+            const hashParams = parseHashParams();
+            if (hashParams) {
+                applyHashParams(hashParams);
+            }
+            // Don't update hash on load - only when settings change from default
+        }
+
+        /**
+         * Adds event listeners to all form inputs to update URL hash on change.
+         */
+        function addHashUpdateListeners() {
+            const inputs = [startIdInput, endIdInput, intervalInput, stepInput, sizeInput, durationInput, randomInput, showMeaningInput, serifInput];
+            inputs.forEach(input => {
+                input.addEventListener('change', updateUrlHash);
+                input.addEventListener('input', updateUrlHash);
+            });
+        }
+
+        /**
+         * Converts the database object into an array of objects for easier handling.
+         */
+        function initializeKanjiList() {
+            if (typeof database === 'undefined') {
+                console.error("Database not found. Make sure database.js is loaded correctly.");
+                alert("Error: Kanji database not loaded.");
+                return;
+            }
+            kanjiList = Object.keys(database).map(key => ({
+                kanji: key,
+                ...database[key]
+            }));
+        }
+
+        /**
+         * Shuffles an array in place.
+         * @param {Array} array The array to shuffle.
+         */
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        /**
+         * Updates the footer diagnostic text.
+         * Wraps pipe characters in a span to control their opacity independently.
+         */
+        function updateFooter() {
+            footerDiagnostics.innerHTML = `Range: ${range.start}-${range.end} <span class="opacity-35">|</span> Interval: ${currentInterval}ms <span class="opacity-35">|</span> Step: ${step}ms <span class="opacity-35">|</span> Size: ${currentSize}em`;
+        }
+
+        /**
+         * Formats kanji meanings by wrapping separators in dimmed spans.
+         * @param {string} meaning The raw meaning string
+         * @returns {string} HTML string with dimmed separators
+         */
+        function formatMeaning(meaning) {
+            if (!meaning) return '';
+            return meaning.replace(/・/g, '<span class="opacity-50">・</span>');
+        }
+
+        /**
+         * Displays the next Kanji in the sequence.
+         */
+        function displayNextKanji() {
+            if (sessionKanji.length === 0) {
+                console.warn("No Kanji in the selected range.");
+                exitTraining();
+                return;
+            }
+            const kanjiData = sessionKanji[currentIndex];
+            kanjiChar.textContent = kanjiData.kanji;
+            kanjiMeaning.innerHTML = showMeaning ? formatMeaning(kanjiData.meaning) : '';
+
+            currentIndex = (currentIndex + 1) % sessionKanji.length;
+        }
+        
+        /**
+         * Starts or resumes the training interval.
+         */
+        function startInterval() {
+            if (timerId) clearInterval(timerId);
+            timerId = setInterval(displayNextKanji, currentInterval);
+        }
+
+        /**
+         * Updates the pause indicator display with current time.
+         */
+        function updatePauseDisplay() {
+            if (!isPaused) return;
+            
+            const currentTime = Date.now();
+            const sessionElapsed = currentTime - startTime;
+            const totalElapsed = elapsedTime + sessionElapsed;
+            const sessionDurationMs = sessionDuration * 60 * 1000;
+            
+            const elapsedStr = formatTime(totalElapsed);
+            const totalStr = formatTime(sessionDurationMs);
+            pauseIndicator.innerHTML = `
+                <div><span class="opacity-75">${elapsedStr} / ${totalStr}</span> [ Paused ]</div>
+                <div class="mt-4 text-sm leading-relaxed">
+                    <div><span class="opacity-75">Adjust font size:</span> up/down</div>
+                    <div> <span class="opacity-75">Adjust interval:</span> left/right</div>
+                    <div>  <span class="opacity-75">Toggle meaning:</span> m</div>
+                    <div>    <span class="opacity-75">Toggle serif:</span> s</div>
+                    <div>          <span class="opacity-75">Resume:</span> spacebar</div>
+                    <div>            <span class="opacity-75">Exit:</span> esc</div>
+                </div>
+            `;
+        }
+
+        /**
+         * Pauses or resumes the training session.
+         */
+        function togglePause() {
+            if (isFinished) return;
+            
+            const currentTime = Date.now();
+            
+            if (isPaused) {
+                // Resume
+                isPaused = false;
+                startTime = currentTime; // Reset start time for resumed session
+                startInterval();
+                startProgressTimer();
+                progressBar.style.opacity = '1'; // Restore progress bar opacity
+                pauseIndicator.classList.add('hidden');
+            } else {
+                // Pause
+                isPaused = true;
+                elapsedTime += currentTime - startTime; // Accumulate elapsed time
+                clearInterval(timerId);
+                clearInterval(progressTimerId);
+                progressBar.style.opacity = '0.5'; // Dim progress bar
+                updatePauseDisplay(); // Update pause display immediately
+                pauseIndicator.classList.remove('hidden');
+            }
+        }
+
+        /**
+         * Toggles the meaning display.
+         */
+        function toggleMeaning() {
+            showMeaning = !showMeaning;
+            showMeaningInput.checked = showMeaning; // Persist to settings
+            updateUrlHash(); // Update URL hash
+            // Update the current display immediately
+            const kanjiData = sessionKanji[(currentIndex - 1 + sessionKanji.length) % sessionKanji.length];
+            kanjiMeaning.innerHTML = showMeaning ? formatMeaning(kanjiData.meaning) : '';
+        }
+
+        /**
+         * Toggles the serif font for the kanji display.
+         */
+        function toggleSerif() {
+            useSerif = !useSerif;
+            kanjiChar.style.fontFamily = useSerif ? 'serif' : '';
+            serifInput.checked = useSerif; // Persist to settings
+            updateUrlHash(); // Update URL hash
+        }
+
+        /**
+         * Changes the kanji font size.
+         * @param {number} change The amount to change the size by (in em).
+         */
+        function changeSize(change) {
+            currentSize = Math.max(1, Math.min(30, currentSize + change));
+            kanjiChar.style.fontSize = currentSize + 'em';
+            sizeInput.value = currentSize; // Persist to settings
+            updateUrlHash(); // Update URL hash
+            updateFooter(); // Update footer to show new size
+        }
+
+        /**
+         * Changes the interval and restarts the timer.
+         * @param {number} change The amount to change the interval by.
+         */
+        function changeInterval(change) {
+            const newInterval = currentInterval + change;
+            // Prevent interval from being too low
+            currentInterval = Math.max(step, newInterval); 
+            intervalInput.value = currentInterval; // Persist to settings
+            updateUrlHash(); // Update URL hash
+            updateFooter();
+
+            // If not paused, restart the interval with the new timing
+            if (!isPaused) {
+                startInterval();
+            }
+        }
+
+        /**
+         * Exits the training session and returns to the settings view.
+         */
+        function exitTraining() {
+            clearInterval(timerId);
+            clearInterval(progressTimerId);
+            timerId = null;
+            progressTimerId = null;
+            isPaused = false;
+            isFinished = false;
+            elapsedTime = 0;
+            startTime = null;
+            progressBar.style.width = '0%';
+            progressBar.style.opacity = '1';
+            trainingView.classList.add('hidden');
+            settingsView.classList.remove('hidden');
+            document.removeEventListener('keydown', handleKeyPress);
+            document.addEventListener('keydown', handleSettingsKeyPress);
+        }
+
+        /**
+         * Handles key presses during the training session.
+         * @param {KeyboardEvent} e The keyboard event.
+         */
+        function handleKeyPress(e) {
+            switch (e.key) {
+                case ' ': // Spacebar
+                    e.preventDefault();
+                    togglePause();
+                    break;
+                case 'ArrowLeft':
+                    changeInterval(-step);
+                    break;
+                case 'ArrowRight':
+                    changeInterval(step);
+                    break;
+                case 'ArrowUp':
+                    e.preventDefault();
+                    changeSize(0.5);
+                    break;
+                case 'ArrowDown':
+                    e.preventDefault();
+                    changeSize(-0.5);
+                    break;
+                case 'm':
+                case 'M':
+                    e.preventDefault();
+                    toggleMeaning();
+                    break;
+                case 's':
+                case 'S':
+                    e.preventDefault();
+                    toggleSerif();
+                    break;
+                case 'Escape':
+                    exitTraining();
+                    break;
+            }
+        }
+
+        /**
+         * Starts the training session.
+         */
+        function startTraining() {
+            // 1. Get settings from the form
+            range.start = parseInt(startIdInput.value, 10);
+            range.end = parseInt(endIdInput.value, 10);
+            currentInterval = parseInt(intervalInput.value, 10);
+            step = parseInt(stepInput.value, 10);
+            currentSize = parseFloat(sizeInput.value);
+            sessionDuration = parseInt(durationInput.value, 10);
+            const isRandom = randomInput.checked;
+            showMeaning = showMeaningInput.checked;
+            useSerif = serifInput.checked;
+
+            // 2. Filter Kanji based on the selected ID range
+            sessionKanji = kanjiList.filter(k => {
+                const id = parseInt(k.id, 10);
+                return id >= range.start && id <= range.end;
+            });
+
+            if (sessionKanji.length === 0) {
+                alert(`No Kanji found in the ID range ${range.start}-${range.end}. Please adjust the range.`);
+                return;
+            }
+
+            // 3. Shuffle if required
+            if (isRandom) {
+                shuffleArray(sessionKanji);
+            }
+
+            // 4. Reset state and switch views
+            currentIndex = 0;
+            isPaused = false;
+            isFinished = false;
+            elapsedTime = 0;
+            startTime = Date.now();
+            pauseIndicator.classList.add('hidden');
+            settingsView.classList.add('hidden');
+            trainingView.classList.remove('hidden');
+            
+            // Remove settings key listener and add training key listener
+            document.removeEventListener('keydown', handleSettingsKeyPress);
+            document.addEventListener('keydown', handleKeyPress);
+            
+            // 5. Initial setup
+            updateFooter();
+            kanjiChar.style.fontSize = currentSize + 'em'; // Set initial font size
+            kanjiChar.style.fontFamily = useSerif ? 'serif' : ''; // Set initial font family
+            progressBar.style.width = '0%'; // Reset progress bar
+            progressBar.style.opacity = '1'; // Ensure progress bar is visible
+            displayNextKanji(); // Display the first one immediately
+            startInterval();
+            startProgressTimer(); // Start the progress timer
+
+            // 6. Add event listener for controls
+            displayNextKanji(); // Display the first one immediately
+            startInterval();
+        }
+
+        /**
+         * Handles key presses on the settings screen.
+         * @param {KeyboardEvent} e The keyboard event.
+         */
+        function handleSettingsKeyPress(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                startTraining();
+            }
+        }
+
+        // --- Event Listeners ---
+        startBtn.addEventListener('click', startTraining);
+        document.addEventListener('keydown', handleSettingsKeyPress);
+
+        // --- Initial Load ---
+        window.onload = () => {
+            initializeKanjiList();
+            initializeSettings();
+            addHashUpdateListeners();
+        };
+    </script>
+</body>
+</html>
