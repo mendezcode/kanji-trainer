@@ -215,6 +215,7 @@
         let navigationHistory = []; // Track the sequence of kanji indices viewed
         let isTemporarilyRevealing = false; // Track if we're temporarily revealing meaning
         let keysPressed = new Set(); // Track currently pressed keys
+        let isInverted = false; // Track if colors are inverted
 
         /**
          * Formats time in mm:ss format.
@@ -307,7 +308,8 @@
                 rand: true,
                 meaning: false,
                 serif: false,
-                manual: false
+                manual: false,
+                invert: false
             };
         }
 
@@ -327,7 +329,8 @@
                 randomInput.checked === defaults.rand &&
                 showMeaningInput.checked === defaults.meaning &&
                 serifInput.checked === defaults.serif &&
-                manualInput.checked === defaults.manual
+                manualInput.checked === defaults.manual &&
+                isInverted === defaults.invert
             );
         }
 
@@ -349,6 +352,7 @@
             if (showMeaningInput.checked !== defaults.meaning) params.push(`meaning=${showMeaningInput.checked}`);
             if (serifInput.checked !== defaults.serif) params.push(`serif=${serifInput.checked}`);
             if (manualInput.checked !== defaults.manual) params.push(`manual=${manualInput.checked}`);
+            if (isInverted !== defaults.invert) params.push(`invert=${isInverted}`);
             
             if (params.length === 0) {
                 // Remove hash if no non-default settings
@@ -375,6 +379,10 @@
             if (params.meaning !== undefined) showMeaningInput.checked = params.meaning;
             if (params.serif !== undefined) serifInput.checked = params.serif;
             if (params.manual !== undefined) manualInput.checked = params.manual;
+            if (params.invert !== undefined) {
+                isInverted = params.invert;
+                applyInvertFilter();
+            }
         }
 
         /**
@@ -564,6 +572,7 @@
                     <div>  <span class="opacity-75">Toggle meaning:</span> m</div>
                     <div>    <span class="opacity-75">Toggle serif:</span> s</div>
                     <div>  <span class="opacity-75">Toggle fullscreen:</span> f</div>
+                    <div>   <span class="opacity-75">Toggle invert:</span> i</div>
                     <div>      <span class="opacity-75">Show meaning:</span> v / spacebar</div>
                     <div>            <span class="opacity-75">Exit:</span> esc</div>
                 `;
@@ -574,6 +583,7 @@
                     <div>  <span class="opacity-75">Toggle meaning:</span> m</div>
                     <div>    <span class="opacity-75">Toggle serif:</span> s</div>
                     <div>  <span class="opacity-75">Toggle fullscreen:</span> f</div>
+                    <div>   <span class="opacity-75">Toggle invert:</span> i</div>
                     <div>      <span class="opacity-75">Show meaning:</span> v</div>
                     <div>          <span class="opacity-75">Resume:</span> spacebar</div>
                     <div>            <span class="opacity-75">Exit:</span> esc</div>
@@ -775,12 +785,30 @@
         }
 
         /**
+         * Applies or removes the invert filter.
+         */
+        function applyInvertFilter() {
+            const filter = isInverted ? 'invert(1) sepia(0.15)' : '';
+            document.documentElement.style.filter = filter;
+            // document.body.style.filter = filter;
+        }
+
+        /**
+         * Toggles the color inversion filter.
+         */
+        function toggleInvert() {
+            isInverted = !isInverted;
+            applyInvertFilter();
+            updateUrlHash(); // Update URL hash
+        }
+
+        /**
          * Handles key down events during the training session.
          * @param {KeyboardEvent} e The keyboard event.
          */
         function handleKeyDown(e) {
             // Prevent default for keys we handle to avoid browser shortcuts
-            const handledKeys = [' ', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', '[', ']', 'v', 'V', 'm', 'M', 's', 'S', 'f', 'F', 'Escape', 'h', 'H', 'j', 'J', 'k', 'K', 'l', 'L'];
+            const handledKeys = [' ', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', '[', ']', 'v', 'V', 'm', 'M', 's', 'S', 'f', 'F', 'i', 'I', 'Escape', 'h', 'H', 'j', 'J', 'k', 'K', 'l', 'L'];
             if (handledKeys.includes(e.key)) {
                 e.preventDefault();
             }
@@ -861,6 +889,10 @@
                 case 'f':
                 case 'F':
                     toggleFullscreen();
+                    break;
+                case 'i':
+                case 'I':
+                    toggleInvert();
                     break;
                 case 'Escape':
                     exitTraining();
@@ -974,6 +1006,9 @@
             if (e.key === 'Enter') {
                 e.preventDefault();
                 startTraining();
+            } else if (e.key === 'i' || e.key === 'I') {
+                e.preventDefault();
+                toggleInvert();
             }
         }
 
